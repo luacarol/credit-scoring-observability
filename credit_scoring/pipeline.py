@@ -18,6 +18,8 @@ from credit_scoring.data.simulate_drift import save_production, simulate_product
 from credit_scoring.models.train import train_baseline
 from credit_scoring.monitoring.drift_detector import run_drift_report
 from credit_scoring.monitoring.mlflow_logger import log_drift_run
+from credit_scoring.visualization.distribution_plots import generate_distribution_report
+from credit_scoring.visualization.fairness_analysis import generate_fairness_report
 
 logging.basicConfig(
     level=logging.INFO,
@@ -133,6 +135,18 @@ def main() -> None:
     if drift_metrics.get("dataset_drift"):
         logger.warning("⚠ ALERTA: DATASET DRIFT DETECTADO — modelo precisa ser retreinado!")
 
+    logger.info("Gerando gráficos de distribuição antes/depois do drift...")
+    dist_report_path = generate_distribution_report(reference_df, production_df)
+    logger.info("✓ Gráficos de distribuição salvos em %s", dist_report_path)
+
+    logger.info("Gerando análise de fairness por faixa etária...")
+    from credit_scoring.models.train import FEATURE_COLS
+
+    fairness_report_path = generate_fairness_report(
+        reference_df, production_df, champion, FEATURE_COLS
+    )
+    logger.info("✓ Análise de fairness salva em %s", fairness_report_path)
+
     logger.info("Logando resultados no MLflow...")
     run_id = log_drift_run(
         drift_metrics=drift_metrics,
@@ -153,9 +167,14 @@ def main() -> None:
         "  Concept Drift: %s",
         f"DETECTADO ⚠ (Δaccuracy={degradation:.3f})" if degradation > 0.03 else "Não detectado ✓",
     )
+    logger.info("  Distribuições: %s", dist_report_path)
+    logger.info("  Fairness: %s", fairness_report_path)
     logger.info("")
     logger.info("Para visualizar o MLflow UI: mlflow ui --port 5000")
-    logger.info("Relatório HTML: abra credit_scoring/reports/drift_report.html no browser")
+    logger.info("Relatório Evidently: abra credit_scoring/reports/drift_report.html no browser")
+    logger.info(
+        "Gráficos de distribuição: abra credit_scoring/reports/distribution_report.html no browser"
+    )
 
 
 if __name__ == "__main__":

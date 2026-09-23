@@ -58,8 +58,22 @@ def _plot_feature(
         prod_counts = [np.mean(prod == c) for c in categories]
         x = np.arange(len(categories))
         width = 0.35
-        ax.bar(x - width / 2, ref_counts, width, label="Referência", color=COLORS["reference"], alpha=0.8)
-        ax.bar(x + width / 2, prod_counts, width, label="Produção", color=COLORS["production"], alpha=0.8)
+        ax.bar(
+            x - width / 2,
+            ref_counts,
+            width,
+            label="Referência",
+            color=COLORS["reference"],
+            alpha=0.8,
+        )
+        ax.bar(
+            x + width / 2,
+            prod_counts,
+            width,
+            label="Produção",
+            color=COLORS["production"],
+            alpha=0.8,
+        )
         ax.set_xticks(x)
         ax.set_xticklabels(["Adimplente (0)", "Inadimplente (1)"])
         ax.set_ylabel("Proporção")
@@ -69,8 +83,12 @@ def _plot_feature(
         )
     else:
         bins = 30
-        ax.hist(ref, bins=bins, alpha=0.5, color=COLORS["reference"], label="Referência", density=True)
-        ax.hist(prod, bins=bins, alpha=0.5, color=COLORS["production"], label="Produção", density=True)
+        ax.hist(
+            ref, bins=bins, alpha=0.5, color=COLORS["reference"], label="Referência", density=True
+        )
+        ax.hist(
+            prod, bins=bins, alpha=0.5, color=COLORS["production"], label="Produção", density=True
+        )
 
         # KDE curves
         for data, color in [(ref, COLORS["reference"]), (prod, COLORS["production"])]:
@@ -176,8 +194,8 @@ def _build_html(img_b64: str, metrics: dict, ref_df: pd.DataFrame, prod_df: pd.D
         <tr>
             <td>{label}</td>
             <td>{status_html}</td>
-            <td>{m['psi']:.4f}</td>
-            <td>{m['p_value']:.6f}</td>
+            <td>{m["psi"]:.4f}</td>
+            <td>{m["p_value"]:.6f}</td>
             <td>{ref_mean:.2f}</td>
             <td>{prod_mean:.2f}</td>
             <td>{delta_html}</td>

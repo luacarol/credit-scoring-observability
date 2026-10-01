@@ -108,18 +108,36 @@ O dataset de produção simula mudanças econômicas:
 | `inadimplente` | +15 pp taxa | Concept drift (mudança de comportamento) |
 
 **Testes estatísticos aplicados:**
-- **PSI (Population Stability Index)**: PSI > 0.2 indica drift significativo
-- **Kolmogorov-Smirnov**: p < 0.05 confirma distribuições diferentes
+- **PSI (Population Stability Index)**: PSI > 0.2 indica drift significativo (features numéricas)
+- **Chi-square**: p < 0.05 confirma distribuições diferentes (features categóricas)
+- **Drift de rótulo** (`inadimplente`): chi-square, complementando o concept drift de performance
+
+**Métricas avançadas (diferenciação):** além das métricas clássicas exigidas,
+calculamos distâncias de distribuição para cada feature numérica e comparamos
+com o PSI:
+
+| Métrica | Faixa | Interpretação |
+|---------|-------|---------------|
+| **PSI** | [0, ∞) | > 0.2 = drift significativo (padrão de mercado) |
+| **Jensen-Shannon** | [0, 1] | 0 = idêntico, 1 = totalmente divergente |
+| **Hellinger** | [0, 1] | 0 = idêntico, 1 = totalmente divergente |
+
+A vantagem das métricas avançadas é a **faixa normalizada [0, 1]** — permitem
+comparar a severidade do drift entre features com escalas diferentes (ex.: renda
+em R$ vs. idade em anos), algo que o PSI não faz diretamente.
 
 ### Etapa 3 — Observabilidade (Evidently + MLflow)
 
 **Evidently AI** compara referência vs produção com:
-- `DataDriftPreset` — detecta mudança de distribuição por feature
-- `DataQualityPreset` — monitora nulos, outliers, valores inválidos
-- `TargetDriftPreset` — detecta concept drift na variável alvo
+- `DataDriftPreset` — detecta mudança de distribuição por feature (PSI para numéricas, chi-square para categóricas)
+- `DataSummaryPreset` — monitora nulos, outliers, valores inválidos
+- Drift de rótulo (`inadimplente`) — detecta concept drift na variável alvo
 
 **MLflow** registra para cada execução:
-- Métricas de drift por feature (`psi_renda_mensal`, `psi_score_credito`, ...)
+- Métricas de drift por feature (`drift_renda_mensal`, `drift_score_credito`, ...)
+- PSI por feature numérica (`psi_renda_mensal`, `psi_score_credito`, ...)
+- Distâncias avançadas (`jensen_shannon_renda_mensal`, `hellinger_score_credito`, ...)
+- Drift da variável alvo (`target_drift_statistic`, `target_drift_detected`)
 - Performance do modelo (`ref_accuracy`, `prod_accuracy`, `accuracy_delta`)
 - Alertas automáticos: tag `drift_alert=True` quando drift detectado
 - Artefatos: relatórios HTML anexados ao run

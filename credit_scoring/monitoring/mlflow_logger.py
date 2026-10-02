@@ -30,9 +30,27 @@ def log_drift_run(
         )
         mlflow.log_metric("dataset_drift_detected", int(drift_metrics.get("dataset_drift", False)))
 
-        # Score por feature
+        # Estatística de drift por feature (método + valor)
         for feat, info in drift_metrics.get("feature_scores", {}).items():
-            mlflow.log_metric(f"psi_{feat}", info.get("score", 0.0))
+            mlflow.log_metric(f"drift_{feat}", info.get("statistic", 0.0))
+
+        # PSI por feature numérica (Population Stability Index)
+        for feat, psi in drift_metrics.get("psi_by_feature", {}).items():
+            mlflow.log_metric(f"psi_{feat}", psi)
+
+        # Distâncias avançadas por feature (Jensen-Shannon, Hellinger)
+        for feat, distances in drift_metrics.get("advanced_distances", {}).items():
+            for name, value in distances.items():
+                if value is not None:
+                    mlflow.log_metric(f"{name}_{feat}", value)
+
+        # Drift da variável alvo (concept/label drift)
+        target_drift = drift_metrics.get("target_drift")
+        if target_drift:
+            mlflow.log_metric("target_drift_statistic", target_drift.get("statistic", 0.0))
+            mlflow.log_metric(
+                "target_drift_detected", int(target_drift.get("drift_detected", False))
+            )
 
         # Métricas do modelo em referência vs produção
         for key, value in model_metrics_ref.items():

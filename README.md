@@ -140,7 +140,23 @@ em R$ vs. idade em anos), algo que o PSI não faz diretamente.
 - Drift da variável alvo (`target_drift_statistic`, `target_drift_detected`)
 - Performance do modelo (`ref_accuracy`, `prod_accuracy`, `accuracy_delta`)
 - Alertas automáticos: tag `drift_alert=True` quando drift detectado
-- Artefatos: relatórios HTML anexados ao run
+- Artefatos: relatórios HTML e logs de execução anexados ao run
+
+**Métricas de saúde operacional** — além do run de drift, um run dedicado
+(`pipeline_health`) registra a saúde do pipeline:
+
+| Métrica | Descrição |
+|---------|-----------|
+| `pipeline_status` / `pipeline_status_success` | Status de sucesso/falha da execução |
+| `n_stages`, `n_stages_succeeded`, `n_stages_failed` | Status por etapa do pipeline |
+| `pipeline_latency_seconds`, `latency_{etapa}_seconds` | Latência total e por etapa |
+| `n_samples_reference`, `n_samples_production` | Volume de dados processados |
+| `n_alerts` | Quantidade de alertas (qualidade + data drift + concept drift) |
+| `n_contract_violations` | Número de violações de contrato detectadas |
+
+O resumo completo da execução é gravado no artefato
+`pipeline_run_summary.json`, e os logs de execução são centralizados no
+arquivo `reports/pipeline.log` (anexado ao run no MLflow).
 
 ---
 

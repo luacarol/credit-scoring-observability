@@ -76,11 +76,13 @@ def log_drift_run(
         mlflow.set_tag("drifted_features", ", ".join(drift_metrics.get("drifted_features", [])))
         mlflow.set_tag("n_drifted", str(drift_metrics.get("n_drifted_features", 0)))
 
-        # Artefatos HTML
+        # Artefatos HTML e logs de execução
         for html_file in REPORTS_DIR.glob("*.html"):
             mlflow.log_artifact(str(html_file), artifact_path="reports")
         for json_file in REPORTS_DIR.glob("*.json"):
             mlflow.log_artifact(str(json_file), artifact_path="reports")
+        for log_file in REPORTS_DIR.glob("*.log"):
+            mlflow.log_artifact(str(log_file), artifact_path="logs")
 
         run_id = run.info.run_id
         logger.info(
@@ -88,5 +90,65 @@ def log_drift_run(
             run_id,
             alert,
             drift_metrics.get("drifted_features", []),
+        )
+        return run_id
+
+
+def log_pipeline_health(
+    stage_statuses: dict,
+    latencies: dict,
+    data_volumes: dict,
+    alert_count: int,
+    contract_violations: int,
+    experiment_name: str = "credit_scoring_monitoring",
+) -> str:
+    """Registra as métricas de saúde operacional do pipeline no MLflow.
+
+    Centraliza status de execução, latência, volume de dados processados e
+    quantidade de alertas, além de anexar um resumo estruturado como artefato.
+    """
+    mlflow.set_experiment(experiment_name)
+
+    stages_total = len(stage_statuses)
+    stages_succeeded = sum(1 for status in stage_statuses.values() if status == "success")
+    status = "success" if stages_succeeded == stages_total else "failed"
+
+    with mlflow.start_run(run_name="pipeline_health") as run:
+        mlflow.set_tag("pipeline_status", status)
+
+        mlflow.log_metric("pipeline_status_success", int(status == "success"))
+        mlflow.log_metric("n_stages", stages_total)
+        mlflow.log_metric("n_stages_succeeded", stages_succeeded)
+        mlflow.log_metric("n_stages_failed", stages_total - stages_succeeded)
+
+        total_latency = sum(latencies.values())
+        mlflow.log_metric("pipeline_latency_seconds", round(total_latency, 4))
+        for stage, seconds in latencies.items():
+            mlflow.log_metric(f"latency_{stage}_seconds", round(seconds, 4))
+
+        for name, value in data_volumes.items():
+            mlflow.log_metric(f"n_samples_{name}", value)
+
+        mlflow.log_metric("n_alerts", alert_count)
+        mlflow.log_metric("n_contract_violations", contract_violations)
+
+        summary = {
+            "status": status,
+            "stage_statuses": stage_statuses,
+            "latencies_seconds": {k: round(v, 4) for k, v in latencies.items()},
+            "total_latency_seconds": round(total_latency, 4),
+            "data_volumes": data_volumes,
+            "alert_count": alert_count,
+            "contract_violations": contract_violations,
+        }
+        mlflow.log_dict(summary, "pipeline_run_summary.json")
+
+        run_id = run.info.run_id
+        logger.info(
+            "MLflow run '%s' registrado — status=%s, latência=%.3fs, alertas=%d",
+            run_id,
+            status,
+            total_latency,
+            alert_count,
         )
         return run_id

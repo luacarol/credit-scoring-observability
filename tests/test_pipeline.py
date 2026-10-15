@@ -2,6 +2,7 @@
 
 from credit_scoring.models.train import FEATURE_COLS, _encode_categoricals, train_baseline
 from credit_scoring.monitoring.drift_detector import run_drift_report
+from credit_scoring.monitoring.mlflow_logger import log_pipeline_health
 
 
 class TestTrainBaseline:
@@ -42,6 +43,19 @@ class TestDriftReport:
         )
         assert "n_drifted_features" in metrics or "error" in metrics
         assert "feature_scores" in metrics or "error" in metrics
+
+
+class TestPipelineHealth:
+    def test_loga_metricas_de_saude(self):
+        run_id = log_pipeline_health(
+            stage_statuses={"etapa1": "success", "etapa2": "success"},
+            latencies={"etapa1": 0.1, "etapa2": 0.2},
+            data_volumes={"reference": 200, "production": 200},
+            alert_count=1,
+            contract_violations=10,
+            experiment_name="test_health",
+        )
+        assert run_id and isinstance(run_id, str)
 
 
 class TestDataGeneration:
